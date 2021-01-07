@@ -67,7 +67,9 @@ class MainCharacter(pygame.sprite.Sprite):
 
         self.is_jumping = False
         self.is_falling = False
+
         self.is_ultimate = True
+        self.time_start_ultimate = 0
 
     def cut_sheet(self, sheet, columns, rows):
         self.rect = pygame.Rect(0, 0, sheet.get_width() // columns,
@@ -84,7 +86,20 @@ class MainCharacter(pygame.sprite.Sprite):
         if not self.is_falling:
             self.is_jumping = True
 
+    def start_ultimate(self):
+        global speed
+
+        speed *= ULTIMATE_SPEED_BUST
+        self.is_ultimate = True
+        self.time_start_ultimate = time.time()
+
     def update(self):
+        global speed
+
+        if self.is_ultimate:
+            if time.time() - self.time_start_ultimate > ULTIMATE_DURATION:
+                speed //= ULTIMATE_SPEED_BUST
+                self.is_ultimate = False
         if self.is_jumping:
             self.rect = self.rect.move(0, -math.ceil(
                 DINO_JUMP_SPEED * (self.rect.y - self.default_y + DINO_JUMP_HEIGNT) / 100 * (default_speed / speed)))
@@ -117,6 +132,7 @@ class Object(pygame.sprite.Sprite):
     def update(self):
         self.rect = self.rect.move(self.step, 0)
 
+
 class DecorationObject(Object):
     def __init__(self, image, step, offset_y):
         super().__init__(image, step, screen_size[0] + random.randint(15, 30), None)
@@ -139,7 +155,6 @@ class Enemy(Object):
         self.broken_rotate_angle = random.randint(0, 60)
 
     def broke(self, direction):
-        print(3)
         self.is_broken = True
         self.broken_direction = direction
 
@@ -214,6 +229,19 @@ class Tornado(AnimateEnemy):
             obj.broke(random.choice([-1, 1]))
 
 
+class Bonus(Object):
+    def __init__(self, image, step, x=None, y=None):
+        super().__init__(image, step, x, y)
+        for i in map.enemies:
+            if pygame.sprite.collide_mask(self, i):
+                self.rect.x = self.rect.x + i.rect.w * random.choice([1.2, -1.2])
+
+    def update(self):
+        if pygame.sprite.collide_mask(self, dino):
+            dino.start_ultimate()
+            self.rect.x = -self.rect.w
+        super().update()
+
 
 class Map:
     def __init__(self, screen, screen_size):
@@ -226,15 +254,21 @@ class Map:
         self.next_enemy_distance = self.calculate_next_enemy_distance()
 
         self.disaster = None
+        self.last_bonus_spawn = 0
 
     def clear(self):
-        self.screen.fill(COLOR_EARTH)
-        pygame.draw.rect(self.screen, COLOR_SKY, (0, 0, self.screen_size[0], self.screen_size[1] * SIZE_SKY), 0)
+        if dino.is_ultimate:
+            self.screen.fill((245, random.randint(100, 170), 47))
+            pygame.draw.rect(self.screen, (random.randint(100, 170), 52, 235), (0, 0, self.screen_size[0], self.screen_size[1] * SIZE_SKY), 0)
+        else:
+            self.screen.fill(COLOR_EARTH)
+            pygame.draw.rect(self.screen, COLOR_SKY, (0, 0, self.screen_size[0], self.screen_size[1] * SIZE_SKY), 0)
 
     def update(self):
         self.clear()
         self.spawn_enemy()
         self.spawn_decoration()
+        self.spawn_bonus()
 
         font = pygame.font.Font(None, 50)
         text = font.render(f"Счёт: {self.score}", True, (100, 255, 100))
@@ -242,14 +276,22 @@ class Map:
         text_y = 0
         screen.blit(text, (text_x, text_y))
 
+        if dino.is_ultimate:
+            font = pygame.font.Font(None, 30)
+            text_y = text.get_height() + 10
+            text = font.render(f"Опьянение закончится через: "
+                               f"{ULTIMATE_DURATION - int(time.time() - dino.time_start_ultimate)}",
+                               True, (245, 120, 47))
+            text_x = screen_size[0] - text.get_width()
+            screen.blit(text, (text_x, text_y))
+
+
         for i, obj in enumerate(self.enemies.copy()):
-            # obj.move()
             if obj.is_hidden():
                 self.enemies.pop(i)
                 all_sprites.remove(obj)
                 if isinstance(obj, Tornado):
                     self.disaster = None
-        # print(self.disaster)
         if self.disaster:
             for i in filter(lambda x: not isinstance(x, Tornado), self.enemies):
                 self.disaster.check_colide(i)
@@ -259,9 +301,7 @@ class Map:
 
         path = 'src/enemy/'
         select = random.randint(1, 10)
-        if select * random.randint(1, 5) == 5 and False:
-            pass
-        elif select == 1 and self.score >= TORNADO_SCORE_START and not self.disaster:
+        if select == 1 and self.score >= TORNADO_SCORE_START and not self.disaster:
             self.disaster = Tornado(f'{path}tornado.png', SPEED_TORNADO)
             return self.disaster
         elif select < 4 and self.score >= BIRD_SCORE_START:
@@ -278,17 +318,30 @@ class Map:
             self.enemies.append(self.random_select_next())
 
     def spawn_decoration(self):
-        if random.randint(1, 50) == 1:
+        path = "src/decoration/"
+        if random.randint(1, 40) == 1:
             if random.randint(0, 1):
-                self.decoration.append(DecorationObject(f"src/decoration/sky_{random.randint(1, 2)}.png", SPEED_CACTUS, random.randint(3, 5)))
+                self.decoration.append(
+                    DecorationObject(f"{path}sky_{random.randint(1, 2)}.png", SPEED_CACTUS, random.randint(3, 5)))
+            else:
+                self.decoration.append(DecorationObject(f"{path}ground_{random.randint(1, 4)}.png", SPEED_CACTUS,
+                                                        random.randint(-2, -1)))
+
+    def spawn_bonus(self):
+        path = "src/bonus/"
+        if time.time() - self.last_bonus_spawn > MIN_ULTIMATE_FREQUENCY:
+            if random.randint(1, ULTIMATE_CHANCE_SPAWN) == 1:
+                Bonus(f"{path}wine.png", SPEED_CACTUS)
+                self.last_bonus_spawn = time.time()
 
     def calculate_next_enemy_distance(self):
         return random.randint(dino.rect.w * 4, DISTANCE_BETWEEN_ENEMY_MAX)
 
+
 dino = MainCharacter("src/character/fox.png")
 map = Map(screen, screen_size)
 while running:
-    if speed < MAX_GAME_SPEED:
+    if speed < MAX_GAME_SPEED and not dino.is_ultimate:
         speed = int(default_speed + (time.time() - time_start))
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
