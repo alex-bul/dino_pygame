@@ -1,3 +1,5 @@
+IMMORTAL = False
+
 COLOR_SKY = (52, 183, 235)
 COLOR_EARTH = (68, 207, 98)
 SIZE_SKY = 0.7
@@ -19,10 +21,10 @@ BROKE_ENEMY_SPEED = 10
 TORNADO_SCORE_START = 40
 BIRD_SCORE_START = 20
 
-ULTIMATE_CHANCE_SPAWN = 200
-ULTIMATE_DURATION = 5
-ULTIMATE_SPEED_BUST = 3
-MIN_ULTIMATE_FREQUENCY = 10
+BONUS_CHANCE_SPAWN = 200
+BONUS_DURATION = 5
+BONUS_SPEED_BUST = 3
+MIN_BONUS_FREQUENCY = 10
 
 animate_sprites = {
     'bird.png': (7, 1),
@@ -30,3 +32,8 @@ animate_sprites = {
 }
 
 WARNING_RADIUS = 20
+
+effects = {
+    'wine.png': ["Опьянение", "speed_up", 3],
+    'mushroom.png': ["Галлюцинация", "jump_speed_down", 0.2],
+}
