@@ -39,7 +39,7 @@ def load_image(file_name, colorkey=None):
 
 
 def calculate_sprite_change_offset():
-    return max(sprite_change_offset - (speed // sprite_change_offset), 1)
+    return max(sprite_change_offset - (speed // sprite_change_offset), 5)
 
 
 def rot_center(image, angle):
@@ -68,8 +68,15 @@ class MainCharacter(pygame.sprite.Sprite):
         self.is_jumping = False
         self.is_falling = False
 
-        self.is_ultimate = True
+        self.is_ultimate = False
         self.time_start_ultimate = 0
+
+    def set_image(self, image):
+        self.frames = []
+        self.cut_sheet(load_image(image), 5, 1)
+        self.cur_frame = 0
+        self.rect.y = self.default_y
+        self.rect.x = 20
 
     def cut_sheet(self, sheet, columns, rows):
         self.rect = pygame.Rect(0, 0, sheet.get_width() // columns,
@@ -117,6 +124,7 @@ class MainCharacter(pygame.sprite.Sprite):
             offset = calculate_sprite_change_offset()
             self.cur_frame = (self.cur_frame + 1) % (len(self.frames) * offset)
             self.image = self.frames[self.cur_frame // offset]
+            self.mask = pygame.mask.from_surface(self.image)
 
 
 class Object(pygame.sprite.Sprite):
@@ -179,7 +187,10 @@ class Enemy(Object):
         return screen_size[0] - self.rect.x
 
     def is_hidden(self):
-        return self.rect.x + self.rect.w < 0
+        return self.rect.right + self.rect.w < 0 or \
+               self.rect.left + self.rect.w < 0 or \
+               self.rect.top + self.rect.h < 0 or \
+               self.rect.bottom + self.rect.h < 0
 
 
 class AnimateEnemy(Enemy):
@@ -217,8 +228,18 @@ class Tornado(AnimateEnemy):
     def __init__(self, image, step, x=None, y=None):
         super().__init__(image, step, x, y)
         self.mask = pygame.mask.from_surface(self.image)
+        self.rect.x += SPEED_TORNADO * default_speed
 
     def update(self):
+        if self.rect.x >= screen_size[0] and not self.is_broken:
+            font = pygame.font.Font(None, 50)
+            text = font.render(f"!", True, (255, 255, 255))
+            pygame.draw.circle(screen, (255, 59, 59), (screen_size[0] - WARNING_RADIUS * 1.5,
+                                                       screen_size[1] * SIZE_SKY - WARNING_RADIUS * 3.5),
+                               WARNING_RADIUS)
+            screen.blit(text, (screen_size[0] - WARNING_RADIUS * 1.5 - text.get_width() // 2 - 1,
+                               screen_size[1] * SIZE_SKY - WARNING_RADIUS * 3.5 - text.get_height() // 2 + 2))
+
         offset = calculate_sprite_change_offset()
         self.cur_frame = (self.cur_frame + 1) % (len(self.frames) * offset)
         self.image = self.frames[self.cur_frame // offset]
@@ -227,6 +248,9 @@ class Tornado(AnimateEnemy):
     def check_colide(self, obj):
         if pygame.sprite.collide_mask(self, obj):
             obj.broke(random.choice([-1, 1]))
+
+    def get_far(self):
+        return screen_size[0] - self.rect.x - SPEED_TORNADO * default_speed
 
 
 class Bonus(Object):
@@ -259,7 +283,8 @@ class Map:
     def clear(self):
         if dino.is_ultimate:
             self.screen.fill((245, random.randint(100, 170), 47))
-            pygame.draw.rect(self.screen, (random.randint(100, 170), 52, 235), (0, 0, self.screen_size[0], self.screen_size[1] * SIZE_SKY), 0)
+            pygame.draw.rect(self.screen, (random.randint(100, 170), 52, 235),
+                             (0, 0, self.screen_size[0], self.screen_size[1] * SIZE_SKY), 0)
         else:
             self.screen.fill(COLOR_EARTH)
             pygame.draw.rect(self.screen, COLOR_SKY, (0, 0, self.screen_size[0], self.screen_size[1] * SIZE_SKY), 0)
@@ -285,9 +310,9 @@ class Map:
             text_x = screen_size[0] - text.get_width()
             screen.blit(text, (text_x, text_y))
 
-
         for i, obj in enumerate(self.enemies.copy()):
             if obj.is_hidden():
+                print(obj)
                 self.enemies.pop(i)
                 all_sprites.remove(obj)
                 if isinstance(obj, Tornado):
@@ -300,8 +325,8 @@ class Map:
         self.score += 1
 
         path = 'src/enemy/'
-        select = random.randint(1, 10)
-        if select == 1 and self.score >= TORNADO_SCORE_START and not self.disaster:
+        select = random.randint(1, 12)
+        if select < 2 and self.score >= TORNADO_SCORE_START and not self.disaster:
             self.disaster = Tornado(f'{path}tornado.png', SPEED_TORNADO)
             return self.disaster
         elif select < 4 and self.score >= BIRD_SCORE_START:
@@ -346,13 +371,24 @@ while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
-        if game_run:
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_r:
+                all_sprites = pygame.sprite.Group()
+                time_start = time.time()
+                game_run = True
+                map = Map(screen, screen_size)
+                dino = MainCharacter("src/character/fox.png")
+        if game_run or 1:
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_SPACE or event.key == pygame.K_UP:
                     dino.jump()
                 elif event.key == pygame.K_DOWN:
-                    dino.is_ultimate = True
-    if game_run:
+                    dino.set_image("src/character/fox_tilt.png")
+            elif event.type == pygame.KEYUP:
+                if event.key == pygame.K_DOWN:
+                    dino.set_image("src/character/fox.png")
+
+    if game_run or 1:
         map.update()
         all_sprites.update()
         all_sprites.draw(screen)

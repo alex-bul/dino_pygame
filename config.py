@@ -28,3 +28,5 @@ animate_sprites = {
     'bird.png': (7, 1),
     'tornado.png': (2, 1)
 }
+
+WARNING_RADIUS = 20
