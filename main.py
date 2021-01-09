@@ -399,7 +399,7 @@ class Map:
         elif select < 4 and self.score >= BIRD_SCORE_START:
             return Bird(f'{path}bird.png', SPEED_BIRD)
         else:
-            return Enemy(f'{path}{random.randint(1, 4)}.png', SPEED_CACTUS)
+            return Enemy(f'{path}{random.randint(1, ENEMY_SKIN_COUNT)}.png', SPEED_CACTUS)
 
     def spawn_enemy(self):
         if self.ground_objects:
@@ -441,7 +441,7 @@ def draw_guide():
     rules = ['↑|пробел - прыжок', '↓ - пригнуться',
              # 'R - начать заново'
              ]
-    main_title = "Лиса погибла!" if time_end_game else "Russian Fox"
+    main_title = "Лиса погибла!" if time_end_game else "Crazy FOX"
 
     font = pygame.font.Font('src/fonts/bahnschrift.ttf', 60)
     text = font.render(main_title, True, OUTLINE_COLOR)
