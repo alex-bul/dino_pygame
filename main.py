@@ -11,15 +11,13 @@ import json
 all_sprites = pygame.sprite.Group()
 pygame.init()
 clock = pygame.time.Clock()
-screen_size = (900, 500)
-screen = pygame.display.set_mode(screen_size)
+screen = pygame.display.set_mode(SCREEN_SIZE)
 
 user_data_file = 'user_data.json'
 running = True
 game_run = False
-default_speed = 60
-sprite_change_offset = 11
-speed = default_speed
+SPRITE_CHANGE_OFFSET = 11
+speed = DEFAULT_SPEED
 time_start = time.time()
 
 
@@ -52,8 +50,8 @@ def load_image(file_name, colorkey=None):
     return image
 
 
-def calculate_sprite_change_offset():
-    return max(sprite_change_offset - (speed // sprite_change_offset), 5)
+def calculate_SPRITE_CHANGE_OFFSET():
+    return max(SPRITE_CHANGE_OFFSET - (speed // SPRITE_CHANGE_OFFSET), 5)
 
 
 def rot_center(image, angle):
@@ -75,7 +73,7 @@ class MainCharacter(pygame.sprite.Sprite):
         self.image = self.frames[self.cur_frame]
         self.mask = pygame.mask.from_surface(self.image)
         self.rect = self.image.get_rect()
-        self.default_y = screen_size[1] * SIZE_SKY - self.rect.h
+        self.default_y = SCREEN_SIZE[1] * SIZE_SKY - self.rect.h
         self.rect.y = self.default_y
         self.rect.x = 20
 
@@ -93,7 +91,7 @@ class MainCharacter(pygame.sprite.Sprite):
         self.image = self.frames[self.cur_frame]
         self.rect = self.image.get_rect()
         self.rect.x = 20
-        self.default_y = screen_size[1] * SIZE_SKY - self.rect.h
+        self.default_y = SCREEN_SIZE[1] * SIZE_SKY - self.rect.h
         if self.is_jumping:
             self.is_jumping = False
             self.is_falling = True
@@ -133,7 +131,7 @@ class MainCharacter(pygame.sprite.Sprite):
         if self.is_jumping:
             self.rect = self.rect.move(0, -math.ceil(
                 DINO_JUMP_SPEED * (self.rect.y - self.default_y + DINO_JUMP_HEIGNT) / 100 * (
-                            default_speed / speed) * self.jump_speed_buster))
+                            DEFAULT_SPEED / speed) * self.jump_speed_buster))
             if (self.rect.y - self.default_y + DINO_JUMP_HEIGNT) / 100 <= 0.1:
                 self.is_jumping = False
                 self.is_falling = True
@@ -145,7 +143,7 @@ class MainCharacter(pygame.sprite.Sprite):
                 c = (self.rect.y - self.default_y + DINO_JUMP_HEIGNT) / 100 * self.jump_speed_buster
                 self.rect = self.rect.move(0, math.ceil(DINO_FALL_SPEED * (c if c < 0.9 else 1)))
         else:
-            offset = calculate_sprite_change_offset()
+            offset = calculate_SPRITE_CHANGE_OFFSET()
             self.cur_frame = (self.cur_frame + 1) % (len(self.frames) * offset)
             self.image = self.frames[self.cur_frame // offset]
             self.mask = pygame.mask.from_surface(self.image)
@@ -173,8 +171,8 @@ class Object(pygame.sprite.Sprite):
         self.image = load_image(image)
         self.mask = pygame.mask.from_surface(self.image)
         self.rect = self.image.get_rect()
-        self.rect.x = x if x else screen_size[0]
-        self.rect.y = y if y else screen_size[1] * SIZE_SKY - self.rect.h
+        self.rect.x = x if x else SCREEN_SIZE[0]
+        self.rect.y = y if y else SCREEN_SIZE[1] * SIZE_SKY - self.rect.h
         self.step = -step
 
         self.is_broken = False
@@ -204,13 +202,13 @@ class Object(pygame.sprite.Sprite):
         self.broken_direction = direction
 
     def get_far(self):
-        return screen_size[0] - self.rect.x
+        return SCREEN_SIZE[0] - self.rect.x
 
 
 class DecorationObject(Object):
     def __init__(self, image, step, offset_y):
-        super().__init__(image, step, screen_size[0] + random.randint(15, 30), None)
-        self.rect.y = screen_size[1] * SIZE_SKY - ((self.rect.h + random.randint(5, 20)) * offset_y)
+        super().__init__(image, step, SCREEN_SIZE[0] + random.randint(15, 30), None)
+        self.rect.y = SCREEN_SIZE[1] * SIZE_SKY - ((self.rect.h + random.randint(5, 20)) * offset_y)
 
 
 class Enemy(Object):
@@ -219,8 +217,8 @@ class Enemy(Object):
         self.image = load_image(image)
         self.mask = pygame.mask.from_surface(self.image)
         self.rect = self.image.get_rect()
-        self.rect.x = x if x else screen_size[0]
-        self.rect.y = y if y else screen_size[1] * SIZE_SKY - self.rect.h
+        self.rect.x = x if x else SCREEN_SIZE[0]
+        self.rect.y = y if y else SCREEN_SIZE[1] * SIZE_SKY - self.rect.h
         self.step = -step
 
     def broke(self, direction):
@@ -232,7 +230,7 @@ class Enemy(Object):
         if pygame.sprite.collide_mask(self, dino) and not self.is_broken:
             if dino.can_broke():
                 self.broke(-1)
-            else:
+            elif not IMMORTAL:
                 game_run = False
                 time_end_game = time.time()
                 if current_record < game_map.score:
@@ -268,7 +266,7 @@ class AnimateEnemy(Enemy):
                     frame_location, self.rect.size)))
 
     def update(self):
-        offset = calculate_sprite_change_offset()
+        offset = calculate_SPRITE_CHANGE_OFFSET()
         self.cur_frame = (self.cur_frame + 1) % (len(self.frames) * offset)
         self.image = self.frames[self.cur_frame // offset]
         super().update()
@@ -276,7 +274,7 @@ class AnimateEnemy(Enemy):
 
 class Bird(AnimateEnemy):
     def __init__(self, image, step, x=None, y=None):
-        y = y if y else screen_size[1] * SIZE_SKY - dino.rect.h - random.randint(10, 30)
+        y = y if y else SCREEN_SIZE[1] * SIZE_SKY - dino.rect.h - random.randint(10, 30)
         super().__init__(image, step, x, y)
 
 
@@ -284,19 +282,19 @@ class Tornado(AnimateEnemy):
     def __init__(self, image, step, x=None, y=None):
         super().__init__(image, step, x, y)
         self.mask = pygame.mask.from_surface(self.image)
-        self.rect.x += SPEED_TORNADO * default_speed
+        self.rect.x += SPEED_TORNADO * DEFAULT_SPEED
 
     def update(self):
-        if self.rect.x >= screen_size[0] and not self.is_broken:
+        if self.rect.x >= SCREEN_SIZE[0] and not self.is_broken:
             font = pygame.font.Font(None, 50)
             text = font.render(f"!", True, (255, 255, 255))
-            pygame.draw.circle(screen, (255, 59, 59), (screen_size[0] - WARNING_RADIUS * 1.5,
-                                                       screen_size[1] * SIZE_SKY - WARNING_RADIUS * 3.5),
+            pygame.draw.circle(screen, (255, 59, 59), (SCREEN_SIZE[0] - WARNING_RADIUS * 1.5,
+                                                       SCREEN_SIZE[1] * SIZE_SKY - WARNING_RADIUS * 3.5),
                                WARNING_RADIUS)
-            screen.blit(text, (screen_size[0] - WARNING_RADIUS * 1.5 - text.get_width() // 2 - 1,
-                               screen_size[1] * SIZE_SKY - WARNING_RADIUS * 3.5 - text.get_height() // 2 + 2))
+            screen.blit(text, (SCREEN_SIZE[0] - WARNING_RADIUS * 1.5 - text.get_width() // 2 - 1,
+                               SCREEN_SIZE[1] * SIZE_SKY - WARNING_RADIUS * 3.5 - text.get_height() // 2 + 2))
 
-        offset = calculate_sprite_change_offset()
+        offset = calculate_SPRITE_CHANGE_OFFSET()
         self.cur_frame = (self.cur_frame + 1) % (len(self.frames) * offset)
         self.image = self.frames[self.cur_frame // offset]
         super().update()
@@ -306,7 +304,7 @@ class Tornado(AnimateEnemy):
             obj.broke(-1)
 
     def get_far(self):
-        return screen_size[0] - self.rect.x - SPEED_TORNADO * default_speed
+        return SCREEN_SIZE[0] - self.rect.x - SPEED_TORNADO * DEFAULT_SPEED
 
 
 class Bonus(Object):
@@ -325,9 +323,9 @@ class Bonus(Object):
 
 
 class Map:
-    def __init__(self, screen, screen_size):
+    def __init__(self, screen, SCREEN_SIZE):
         self.screen = screen
-        self.screen_size = screen_size
+        self.SCREEN_SIZE = SCREEN_SIZE
         self.ground_objects = []
         self.decoration = []
         self.tech_score = 0
@@ -338,13 +336,18 @@ class Map:
         self.last_bonus_spawn = 0
 
     def clear(self):
-        if 'Опьянение' in dino.effects.keys():
+        effect_list = dino.effects.keys()
+        if 'Опьянение' in effect_list:
             self.screen.fill((245, random.randint(100, 170), 47))
             pygame.draw.rect(self.screen, (random.randint(100, 170), 52, 235),
-                             (0, 0, self.screen_size[0], self.screen_size[1] * SIZE_SKY), 0)
+                             (0, 0, self.SCREEN_SIZE[0], self.SCREEN_SIZE[1] * SIZE_SKY), 0)
+        elif 'Галлюцинация'in effect_list:
+            self.screen.fill(COLOR_SKY)
+            pygame.draw.rect(self.screen, COLOR_EARTH,
+                             (0, 0, self.SCREEN_SIZE[0], self.SCREEN_SIZE[1] * SIZE_SKY), 0)
         else:
             self.screen.fill(COLOR_EARTH)
-            pygame.draw.rect(self.screen, COLOR_SKY, (0, 0, self.screen_size[0], self.screen_size[1] * SIZE_SKY), 0)
+            pygame.draw.rect(self.screen, COLOR_SKY, (0, 0, self.SCREEN_SIZE[0], self.SCREEN_SIZE[1] * SIZE_SKY), 0)
 
     def update(self):
         self.clear()
@@ -355,12 +358,12 @@ class Map:
         if game_run:
             font = pygame.font.Font(None, 50)
             text = font.render(f"Счёт: {self.score}", True, (100, 255, 100))
-            text_x = screen_size[0] - text.get_width()
+            text_x = SCREEN_SIZE[0] - text.get_width()
             text_y = 0
             screen.blit(text, (text_x, text_y))
             if current_record:
                 text_record = font.render(f"Рекорд: {current_record}", True, (93, 232, 93))
-                text_x = screen_size[0] - text.get_width() - text_record.get_width() - 20
+                text_x = SCREEN_SIZE[0] - text.get_width() - text_record.get_width() - 20
                 text_y = 0
                 screen.blit(text_record, (text_x, text_y))
 
@@ -372,7 +375,7 @@ class Map:
                                    f"{BONUS_DURATION - int(time.time() - data['start_time'])}",
                                    True, (252, 198, 3))
                 text_y = (score_text_height + 10) * (i + 1)
-                text_x = screen_size[0] - text.get_width()
+                text_x = SCREEN_SIZE[0] - text.get_width()
                 screen.blit(text, (text_x, text_y))
 
         for i, obj in enumerate(self.ground_objects.copy()):
@@ -412,10 +415,10 @@ class Map:
             if random.randint(0, 1):
                 self.decoration.append(
                     DecorationObject(f"{path}sky_{random.randint(1, 2)}.png",
-                                     SPEED_CACTUS, random.randint(3, screen_size[1] * SIZE_SKY // 70)))
+                                     SPEED_CACTUS, random.randint(3, SCREEN_SIZE[1] * SIZE_SKY // 70)))
             else:
                 self.decoration.append(DecorationObject(f"{path}ground_{random.randint(1, 4)}.png", SPEED_CACTUS,
-                                                        -random.randint(1, screen_size[1] * SIZE_EARTH // 75)))
+                                                        -random.randint(1, SCREEN_SIZE[1] * SIZE_EARTH // 75)))
 
     def spawn_bonus(self):
         path = "src/bonus/"
@@ -434,43 +437,49 @@ def draw_guide():
     FONT_COLOR = (240, 240, 240)
     OUTLINE_COLOR = (200, 200, 200)
     DESCRIPTION_COLOR = (220, 220, 220)
-    start_y = screen_size[1] // 10
+    start_y = SCREEN_SIZE[1] // 10
     rules = ['↑|пробел - прыжок', '↓ - пригнуться',
              # 'R - начать заново'
              ]
+    main_title = "Лиса погибла!" if time_end_game else "Russian Fox"
 
     font = pygame.font.Font('src/fonts/bahnschrift.ttf', 60)
-    text = font.render("Russian Fox", True, OUTLINE_COLOR)
-    screen.blit(text, ((screen_size[0] - text.get_width()) // 2 + 3, start_y))
-    text = font.render("Russian Fox", True, FONT_COLOR)
-    screen.blit(text, ((screen_size[0] - text.get_width()) // 2, start_y))
+    text = font.render(main_title, True, OUTLINE_COLOR)
+    screen.blit(text, ((SCREEN_SIZE[0] - text.get_width()) // 2 + 3, start_y))
+    text = font.render(main_title, True, FONT_COLOR)
+    screen.blit(text, ((SCREEN_SIZE[0] - text.get_width()) // 2, start_y))
 
     start_y += text.get_height() + 20
     font = pygame.font.Font('src/fonts/calibri.ttf', 30)
 
     for i in rules:
         text = font.render(i, True, OUTLINE_COLOR)
-        screen.blit(text, ((screen_size[0] - text.get_width()) // 2 + 1, start_y))
+        screen.blit(text, ((SCREEN_SIZE[0] - text.get_width()) // 2 + 1, start_y))
         text = font.render(i, True, FONT_COLOR)
-        screen.blit(text, ((screen_size[0] - text.get_width()) // 2, start_y))
+        screen.blit(text, ((SCREEN_SIZE[0] - text.get_width()) // 2, start_y))
         start_y += text.get_height() + 10
     start_y += 10
     font = pygame.font.Font('src/fonts/calibri.ttf', 20)
 
     text = font.render("Проходите препятствия и подбирайте бустеры", True, OUTLINE_COLOR)
-    screen.blit(text, ((screen_size[0] - text.get_width()) // 2, start_y))
+    screen.blit(text, ((SCREEN_SIZE[0] - text.get_width()) // 2, start_y))
     text = font.render("Проходите препятствия и подбирайте бустеры", True, FONT_COLOR)
-    screen.blit(text, ((screen_size[0] - text.get_width()) // 2, start_y))
+    screen.blit(text, ((SCREEN_SIZE[0] - text.get_width()) // 2, start_y))
     start_y += text.get_height() + 10
     start_y += 20
 
-    text = font.render("Нажмите пробел чтобы начать", True, DESCRIPTION_COLOR)
-    screen.blit(text, ((screen_size[0] - text.get_width()) // 2, start_y))
+    text = font.render("Нажмите ↑|пробел чтобы начать", True, DESCRIPTION_COLOR)
+    screen.blit(text, ((SCREEN_SIZE[0] - text.get_width()) // 2, start_y))
+    pygame.display.flip()
+    start_y += text.get_height() + 5
+
+    text = font.render("Нажмите ESC чтобы выйти", True, DESCRIPTION_COLOR)
+    screen.blit(text, ((SCREEN_SIZE[0] - text.get_width()) // 2, start_y))
     pygame.display.flip()
 
 
 dino = MainCharacter("src/character/fox.png")
-game_map = Map(screen, screen_size)
+game_map = Map(screen, SCREEN_SIZE)
 game_map.clear()
 all_sprites.draw(screen)
 pygame.display.flip()
@@ -479,24 +488,25 @@ time_end_game = 0
 current_record = get_record()
 while running:
     if speed < MAX_GAME_SPEED and not dino.is_affected_speed():
-        speed = int(default_speed + (time.time() - time_start))
+        speed = int(DEFAULT_SPEED + (time.time() - time_start))
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
         elif event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_SPACE and not game_run and time.time() - time_end_game > 0.500:
-                speed = default_speed
+            if (event.key == pygame.K_SPACE or event.key == pygame.K_UP) and not game_run \
+                    and time.time() - time_end_game > 0.500:
+                speed = DEFAULT_SPEED
                 all_sprites = pygame.sprite.Group()
                 time_start = time.time()
                 game_run = True
-                game_map = Map(screen, screen_size)
+                game_map = Map(screen, SCREEN_SIZE)
                 dino = MainCharacter("src/character/fox.png")
             elif event.key == pygame.K_ESCAPE:
                 running = False
         elif event.type == pygame.KEYUP:
             if event.key == pygame.K_SPACE:
                 is_space_not_down = True
-        if game_run or IMMORTAL:
+        if game_run:
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_SPACE or event.key == pygame.K_UP:
                     dino.jump()
@@ -507,7 +517,7 @@ while running:
                 if event.key == pygame.K_DOWN:
                     dino.set_image("src/character/fox.png")
 
-    if game_run or IMMORTAL:
+    if game_run:
         game_map.update()
         all_sprites.update()
         all_sprites.draw(screen)

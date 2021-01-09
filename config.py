@@ -1,4 +1,6 @@
 IMMORTAL = False
+SCREEN_SIZE = (1920, 1080)
+DEFAULT_SPEED = 60
 
 COLOR_SKY = (52, 183, 235)
 COLOR_EARTH = (68, 207, 98)
@@ -37,3 +39,5 @@ effects = {
     'wine.png': ["Опьянение", "speed_up", 3],
     'mushroom.png': ["Галлюцинация", "jump_speed_down", 0.2],
 }
+
+SPRITE_CHANGE_OFFSET = 11
