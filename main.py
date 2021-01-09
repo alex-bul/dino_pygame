@@ -382,6 +382,8 @@ class Map:
             if obj.is_hidden():
                 self.ground_objects.pop(i)
                 all_sprites.remove(obj)
+                if not isinstance(obj, Bonus):
+                    self.score += 1
                 if isinstance(obj, Tornado):
                     self.disaster = None
         if self.disaster:
@@ -389,11 +391,9 @@ class Map:
                 self.disaster.check_colide(i)
 
     def random_select_next(self):
-        self.score += 1
-
         path = 'src/enemy/'
         select = random.randint(1, 12)
-        if select < 2 and self.score >= TORNADO_SCORE_START and not self.disaster:
+        if select < 2 and self.score >= TORNADO_SCORE_START  and not self.disaster:
             self.disaster = Tornado(f'{path}tornado.png', SPEED_TORNADO)
             return self.disaster
         elif select < 4 and self.score >= BIRD_SCORE_START:
